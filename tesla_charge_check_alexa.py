@@ -1,81 +1,136 @@
 import json
+import time
+import schedule
 import requests
 
 
-def req1():
-    url = "https://api.tessie.com/XXXXXXXXXXX/location"
-    
-    headers = {
-    "accept": "application/json",
-    "authorization": "Bearer XXXXXXXXXXXXXXXX"
-    }
-    response = requests.get(url, headers=headers)
-    
-    data = response.json()
+def schedule_run():
 
-    tesla_location_return = data["saved_location"]
+    def req1():
+        url = "https://api.tessie.com"
 
-    if tesla_location_return == "Home":
+        headers = {
+            "accept": "application/json",
+            "authorization": "Bearer"
+        }
 
-        return "Home_Answer"
-        
-    else:
+        response = requests.get(url, headers=headers)
 
-        return "No Data"
+        data = response.json()
 
-def req2():
-    url = "https://api.tessie.com/XXXXXXXXXXXXXX/state?use_cache=true"
-    
-    headers = {
-    "accept": "application/json",
-    "authorization": "Bearer XXXXXXXXX"
-    }
-    response = requests.get(url, headers=headers)
+        tesla_location_return = data["saved_location"]
 
-    data = response.json()
+        # print(tesla_location_return)
 
-    tesla_chargestatus_return = data['charge_state']["charging_state"]
+        if tesla_location_return == "Home":
 
-    #print(tesla_chargestatus_return)
+            return "Home"
 
-    if tesla_chargestatus_return == "Disconnected" or tesla_chargestatus_return == "Stopped":
+        else:
 
-        return "Charging_Answer"
-        
-    else:
+            return "No Data"
 
-        return "No Data"
+    def req2():
+        url = "https://api.tessie.com/"
 
-def req3():
-    url = "https://api.virtualbuttons.com/v1?"
+        headers = {
+            "accept": "application/json",
+            "authorization": "Bearer"
+        }
 
-    accesscode = "XXXXXXXXXX"
-    
-    body = json.dumps({
-        
-        "virtualButton": 1,
-        "accessCode": accesscode
-        
+        response = requests.get(url, headers=headers)
+
+        data = response.json()
+
+        # print(data)
+
+        # print(data['charge_state']['charge_enable_request'])
+
+        # print(data['charge_state']['battery_level'])
+
+        tesla_battery_level = data['charge_state']['battery_level']
+
+        tesla_chargestatus_return = data['charge_state']["charging_state"]
+
+        tesla_charging_request = data['charge_state']['charge_enable_request']
+
+        tesla_charge_port_door_open = data['charge_state']['charge_port_door_open']
+
+        # print(tesla_chargestatus_return)
+
+        if tesla_chargestatus_return == "Stopped" and tesla_charge_port_door_open == False:
+
+            return "Tesla is not Charging"
+
+        elif tesla_chargestatus_return == "Complete" and tesla_battery_level == 100:
+
+            return "Tesla Charging is complete at 100%"
+
+        elif tesla_chargestatus_return == "Stopped" and tesla_charge_port_door_open == True:
+
+            return "Tesla Charging is on Standby"
+
+        elif tesla_chargestatus_return == "Charging":
+
+            return "Tesla is Charging"
+
+        elif tesla_chargestatus_return == "Disconnected":
+
+            return "Disconnected"
+
+    def req3():
+        url = "https://api.virtualbuttons.com/"
+
+        accesscode = "amzn1"
+
+        body = json.dumps({
+
+            "virtualButton": 1,
+            "accessCode": accesscode
+
         })
-        
-    requests.post(url, data = body)
+
+        requests.post(url, data=body)
+
+    answer1 = req1()
+    answer2 = req2()
+
+    # print(answer1)
+    # print(answer2)
+
+    def finalTest():
+
+        if answer1 == "Home" and answer2 == "Tesla is not Charging":
+
+            req3()
+
+            print("Tesla is not Charging")
+
+        elif answer1 == "Home" and answer2 == "Disconnected":
+
+            req3()
+
+            print("Tesla is not Charging")
+
+        elif answer2 == "Tesla Charging is complete at 100%":
+
+            print("Tesla Charging is complete at 100%")
+
+        elif answer2 == "Tesla is Charging":
+
+            print("Tesla is Charging")
+
+        elif answer2 == "Tesla Charging is on Standby":
+
+            print("Tesla Charging is on Standby")
+
+    finalTest()
 
 
-answer1 = req1()
-answer2 = req2()
+schedule.every(45).seconds.do(schedule_run)
 
-def finalTest():
+while True:
+    schedule.run_pending()
+    time.sleep(1)
 
-    if answer1 == "Home_Answer" and answer2 == "Charging_Answer":
-
-        req3()
-        
-        print("Tesla is not Charging")
-
-    else:
-
-        print("Tesla is Charging")
-
-finalTest()
-
-
+schedule_run()
